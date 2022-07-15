@@ -1,4 +1,4 @@
-﻿using System.Net.Mime;
+using System.Net.Mime;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Reports.Api.Common;
 using Jellyfin.Plugin.Reports.Api.Model;
@@ -430,7 +430,7 @@ namespace Jellyfin.Plugin.Reports.Api
                 Response.Headers.Add(key, value);
             }
 
-            return Content(content, contentType);
+            return File(content, contentType);
         }
     }
 }

@@ -18,6 +18,7 @@ using Jellyfin.Plugin.Reports.Api.Common;
 using Jellyfin.Plugin.Reports.Api.Data;
 using Jellyfin.Plugin.Reports.Api.Model;
 using User = Jellyfin.Data.Entities.User;
+using System.IO;
 
 namespace Jellyfin.Plugin.Reports.Api
 {
@@ -98,7 +99,7 @@ namespace Jellyfin.Plugin.Reports.Api
         /// <summary> Gets the given request. </summary>
         /// <param name="request"> The request. </param>
         /// <returns> A Task&lt;object&gt; </returns>
-        public async Task<(string content, string contentType, Dictionary<string,string> headers)> Get(GetReportDownload request)
+        public async Task<(MemoryStream content, string contentType, Dictionary<string,string> headers)> Get(GetReportDownload request)
         {
             if (string.IsNullOrEmpty(request.IncludeItemTypes))
                 return (null, null, null);
@@ -114,8 +115,8 @@ namespace Jellyfin.Plugin.Reports.Api
                 case ReportExportType.CSV:
                     break;
                 case ReportExportType.Excel:
-                    contentType = "application/vnd.ms-excel";
-                    fileExtension = "xls";
+                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    fileExtension = "xlsx";
                     break;
             }
 
@@ -139,7 +140,7 @@ namespace Jellyfin.Plugin.Reports.Api
                     break;
             }
 
-            string returnResult = string.Empty;
+            MemoryStream returnResult = new MemoryStream();
             switch (request.ExportType)
             {
                 case ReportExportType.CSV:
