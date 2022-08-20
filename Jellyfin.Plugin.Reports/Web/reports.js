@@ -406,9 +406,9 @@ function reloadItems(page) {
     ApiClient.getJSON(url).then(function (result) {
         updateFilterControls(page);
         renderItems(page, result);
-    });
 
-    Loading.hide();
+        Loading.hide();
+    });
 }
 
 function updateFilterControls(context) {
