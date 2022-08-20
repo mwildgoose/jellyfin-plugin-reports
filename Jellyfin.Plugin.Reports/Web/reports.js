@@ -93,70 +93,68 @@ function getRow(rHeaders, rRow, row_count, current_state) {
 }
 
 function getItem(rHeader, rRow, rItem) {
-    let html = '';
-    html += '<td class="detailTableBodyCell">';
-    let id = rRow.Id;
-    if (rItem.Id)
-        id = rItem.Id;
+    const td = document.createElement('td')
+    td.classList = ['detailTableBodyCell']
+    const id = rItem.Id ? rItem.Id : rRow.Id;
     const serverId = rRow.ServerId || rItem.ServerId || ApiClient.serverId();
 
     switch (rHeader.ItemViewType) {
         case 'None':
-            html += rItem.Name;
+            td.textContent = rItem.Name;
             break;
         case 'Detail':
-            html += '<a is="emby-linkbutton" class="button-link" href="' + Emby.Page.getRouteUrl({ Id: id, ServerId: serverId }) + '">' + rItem.Name + '</a>';
+            td.appendChild(createLinkElement(Emby.Page.getRouteUrl({ Id: id, ServerId: serverId }), true, rItem.Name));
             break;
         case 'Edit':
-            html += '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '">' + rItem.Name + '</a>';
+            td.appendChild(createLinkElement('edititemmetadata.html?id=' + rRow.Id, false, rItem.Name));
             break;
         case 'List':
-            html += '<a is="emby-button" class="button-link" href="itemlist.html?serverId=' + rItem.ServerId + '&id=' + rRow.Id + '">' + rItem.Name + '</a>';
+            td.appendChild(createLinkElement('itemlist.html?serverId=' + rItem.ServerId + '&id=' + rRow.Id, false, rItem.Name));
             break;
         case 'ItemByNameDetails':
-            html += '<a is="emby-button" class="button-link" href="' + Emby.Page.getRouteUrl({ Id: id, ServerId: serverId }) + '">' + rItem.Name + '</a>';
-            break;
+            td.appendChild(createLinkElement(Emby.Page.getRouteUrl({ Id: id, ServerId: serverId }), false, rItem.Name));
+            break
         case 'EmbeddedImage':
             if (rRow.HasEmbeddedImage) {
-                html += '<i class="material-icons check"></i>';
+                td.innerHTML = '<i class="material-icons check"></i>';
             }
             break;
         case 'SubtitleImage':
             if (rRow.HasSubtitles) {
-                html += '<i class="material-icons check"></i>';
+                td.innerHTML = '<i class="material-icons check"></i>';
             }
             break;
         case 'TrailersImage':
             if (rRow.HasLocalTrailer) {
-                html += '<i class="material-icons check"></i>';
+                td.innerHTML = '<i class="material-icons check"></i>';
             }
             break;
         case 'SpecialsImage':
             if (rRow.HasSpecials) {
-                html += '<i class="material-icons photo" title="Missing primary image." style="color:red;"></i>';
+                td.innerHTML = '<i class="material-icons photo" title="Missing primary image." style="color:red;"></i>';
             }
             break;
         case 'LockDataImage':
             if (rRow.HasLockData) {
-                html += '<i class="material-icons lock"></i>';
+                td.innerHTML = '<i class="material-icons lock"></i>';
             }
             break;
         case 'TagsPrimaryImage':
             if (!rRow.HasImageTagsPrimary) {
-                html += '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing primary image." style="color:red;"></i></a>';
+                td.innerHTML = '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing primary image." style="color:red;"></i></a>';
             }
             break;
         case 'TagsBackdropImage':
             if (!rRow.HasImageTagsBackdrop) {
                 if (rRow.RowType !== 'Episode' && rRow.RowType !== 'Season' && rRow.MediaType !== 'Audio' && rRow.RowType !== 'TvChannel' && rRow.RowType !== 'MusicAlbum') {
-                    html += '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing backdrop image." style="color:orange;"></i></a>';
+                    td.innerHTML = '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing backdrop image." style="color:orange;"></i></a>';
                 }
             }
             break;
         case 'TagsLogoImage':
             if (!rRow.HasImageTagsLogo) {
                 if (rRow.RowType === 'Movie' || rRow.RowType === 'Trailer' || rRow.RowType === 'Series' || rRow.RowType === 'MusicArtist' || rRow.RowType === 'BoxSet') {
-                    html += '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing logo image."></i></a>';
+                    td.innerHTML = '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing logo image."></i></a>';
                 }
             }
             break;
@@ -168,42 +166,48 @@ function getItem(rHeader, rRow, rItem) {
 
                 });
                 if (userImage) {
-                    html += '<img src="' + userImage + '" />';
-                } else {
-                    html += '';
+                    td.innerHTML = '<img src="' + userImage + '" />';
                 }
             }
             break;
         case 'StatusImage':
             if (rRow.HasLockData) {
-                html += '<i class="material-icons lock"></i>';
+                td.innerHTML += '<i class="material-icons lock"></i>';
             }
 
             if (!rRow.HasLocalTrailer && rRow.RowType === 'Movie') {
-                html += '<i title="Missing local trailer." class="material-icons videocam"></i>';
+                td.innerHTML += '<i title="Missing local trailer." class="material-icons videocam"></i>';
             }
 
             if (!rRow.HasImageTagsPrimary) {
-                html += '<i class="material-icons photo" title="Missing primary image." style="color:red;"></i>';
+                td.innerHTML += '<i class="material-icons photo" title="Missing primary image." style="color:red;"></i>';
             }
 
             if (!rRow.HasImageTagsBackdrop) {
                 if (rRow.RowType !== 'Episode' && rRow.RowType !== 'Season' && rRow.MediaType !== 'Audio' && rRow.RowType !== 'TvChannel' && rRow.RowType !== 'MusicAlbum') {
-                    html += '<i class="material-icons photo" title="Missing backdrop image." style="color:orange;"></i>';
+                    td.innerHTML += '<i class="material-icons photo" title="Missing backdrop image." style="color:orange;"></i>';
                 }
             }
 
             if (!rRow.HasImageTagsLogo) {
                 if (rRow.RowType === 'Movie' || rRow.RowType === 'Trailer' || rRow.RowType === 'Series' || rRow.RowType === 'MusicArtist' || rRow.RowType === 'BoxSet') {
-                    html += '<i class="material-icons photo" title="Missing logo image."></i>';
+                    td.innerHTML += '<i class="material-icons photo" title="Missing logo image."></i>';
                 }
             }
             break;
         default:
-            html += rItem.Name;
+            td.textContent = rItem.Name;
     }
-    html += '</td>';
-    return html;
+    return td.outerHTML;
+}
+
+function createLinkElement(href, isLink, content) {
+    const a = document.createElement('a');
+    a.setAttribute('is', isLink ? 'emby-linkbutton' : 'emby-button');
+    a.classList = ['button-link'];
+    a.href = href;
+    a.textContent = content;
+    return a;
 }
 
 function ExportReport() {
