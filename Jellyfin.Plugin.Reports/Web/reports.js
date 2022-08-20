@@ -93,8 +93,8 @@ function getRow(rHeaders, rRow, row_count, current_state) {
 }
 
 function getItem(rHeader, rRow, rItem) {
-    const td = document.createElement('td')
-    td.classList = ['detailTableBodyCell']
+    const td = document.createElement('td');
+    td.classList.add('detailTableBodyCell');
     const id = rItem.Id ? rItem.Id : rRow.Id;
     const serverId = rRow.ServerId || rItem.ServerId || ApiClient.serverId();
 
@@ -116,45 +116,45 @@ function getItem(rHeader, rRow, rItem) {
             break
         case 'EmbeddedImage':
             if (rRow.HasEmbeddedImage) {
-                td.innerHTML = '<i class="material-icons check"></i>';
+                td.appendChild(createIconElement('check'));
             }
             break;
         case 'SubtitleImage':
             if (rRow.HasSubtitles) {
-                td.innerHTML = '<i class="material-icons check"></i>';
+                td.appendChild(createIconElement('check'));
             }
             break;
         case 'TrailersImage':
             if (rRow.HasLocalTrailer) {
-                td.innerHTML = '<i class="material-icons check"></i>';
+                td.appendChild(createIconElement('check'));
             }
             break;
         case 'SpecialsImage':
             if (rRow.HasSpecials) {
-                td.innerHTML = '<i class="material-icons photo" title="Missing primary image." style="color:red;"></i>';
+                td.appendChild(createIconElement('photo', 'Missing primary image.', 'color:red;'));
             }
             break;
         case 'LockDataImage':
             if (rRow.HasLockData) {
-                td.innerHTML = '<i class="material-icons lock"></i>';
+                td.appendChild(createIconElement('lock', 'Metadata is locked.'));
             }
             break;
         case 'TagsPrimaryImage':
             if (!rRow.HasImageTagsPrimary) {
-                td.innerHTML = '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing primary image." style="color:red;"></i></a>';
+                td.appendChild(createLinkIconElement('edititemmetadata.html?id=' + rRow.Id, 'photo', 'Missing primary image.', 'color:red;'));
             }
             break;
         case 'TagsBackdropImage':
             if (!rRow.HasImageTagsBackdrop) {
                 if (rRow.RowType !== 'Episode' && rRow.RowType !== 'Season' && rRow.MediaType !== 'Audio' && rRow.RowType !== 'TvChannel' && rRow.RowType !== 'MusicAlbum') {
-                    td.innerHTML = '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing backdrop image." style="color:orange;"></i></a>';
+                    td.appendChild(createLinkIconElement('edititemmetadata.html?id=' + rRow.Id, 'photo', 'Missing backdrop image.', 'color:orange;'));
                 }
             }
             break;
         case 'TagsLogoImage':
             if (!rRow.HasImageTagsLogo) {
                 if (rRow.RowType === 'Movie' || rRow.RowType === 'Trailer' || rRow.RowType === 'Series' || rRow.RowType === 'MusicArtist' || rRow.RowType === 'BoxSet') {
-                    td.innerHTML = '<a is="emby-button" class="button-link" href="edititemmetadata.html?id=' + rRow.Id + '"><i class="material-icons photo" title="Missing logo image."></i></a>';
+                    td.appendChild(createLinkIconElement('edititemmetadata.html?id=' + rRow.Id, 'photo', 'Missing logo image.'));
                 }
             }
             break;
@@ -166,32 +166,34 @@ function getItem(rHeader, rRow, rItem) {
 
                 });
                 if (userImage) {
-                    td.innerHTML = '<img src="' + userImage + '" />';
+                    const img = createElement('img');
+                    img.src = userImage;
+                    td.appendChild(img);
                 }
             }
             break;
         case 'StatusImage':
             if (rRow.HasLockData) {
-                td.innerHTML += '<i class="material-icons lock"></i>';
+                td.appendChild(createIconElement('lock', 'Metadata is locked.'));
             }
 
             if (!rRow.HasLocalTrailer && rRow.RowType === 'Movie') {
-                td.innerHTML += '<i title="Missing local trailer." class="material-icons videocam"></i>';
+                td.appendChild(createIconElement('videocam', 'Missing local trailer.'));
             }
 
             if (!rRow.HasImageTagsPrimary) {
-                td.innerHTML += '<i class="material-icons photo" title="Missing primary image." style="color:red;"></i>';
+                td.appendChild(createIconElement('photo', 'Missing primary image.', 'color:red;'));
             }
 
             if (!rRow.HasImageTagsBackdrop) {
                 if (rRow.RowType !== 'Episode' && rRow.RowType !== 'Season' && rRow.MediaType !== 'Audio' && rRow.RowType !== 'TvChannel' && rRow.RowType !== 'MusicAlbum') {
-                    td.innerHTML += '<i class="material-icons photo" title="Missing backdrop image." style="color:orange;"></i>';
+                    td.appendChild(createIconElement('photo', 'Missing backdrop image.', 'color:orange;'));
                 }
             }
 
             if (!rRow.HasImageTagsLogo) {
                 if (rRow.RowType === 'Movie' || rRow.RowType === 'Trailer' || rRow.RowType === 'Series' || rRow.RowType === 'MusicArtist' || rRow.RowType === 'BoxSet') {
-                    td.innerHTML += '<i class="material-icons photo" title="Missing logo image."></i>';
+                    td.appendChild(createIconElement('photo', 'Missing logo image.'));
                 }
             }
             break;
@@ -204,9 +206,25 @@ function getItem(rHeader, rRow, rItem) {
 function createLinkElement(href, isLink, content) {
     const a = document.createElement('a');
     a.setAttribute('is', isLink ? 'emby-linkbutton' : 'emby-button');
-    a.classList = ['button-link'];
+    a.classList.add('button-link');
     a.href = href;
     a.textContent = content;
+    return a;
+}
+
+function createIconElement(icon, title, style) {
+    const i = document.createElement('i');
+    i.classList.add('material-icons', icon);
+    if (title)
+        i.title = title;
+    if (style)
+        i.style = style;
+    return i;
+}
+
+function createLinkIconElement(href, icon, title, style) {
+    const a = createLinkElement(href, false, '');
+    a.appendChild(createIconElement(icon, title, style));
     return a;
 }
 
