@@ -11,91 +11,100 @@ const query = {
 };
 
 function getTable(result, initial_state) {
-    let html = '';
+    const setAttributes = (el, attr) => Object.entries(attr).forEach(([k, v]) => el.setAttribute(k, v));
     //Report table
-    html += '<table id="tblReport" data-role="table" data-mode="reflow" class="tblLibraryReport stripedTable ui-responsive table-stroke detailTable" style="display:table;">';
-    html += '<thead>';
+    const table = document.createElement('table');
+    table.classList.add('tblLibraryReport', 'stripedTable', 'ui-responsive', 'table-stroke', 'detailTable');
+    setAttributes(table, {'id': 'tblReport', 'data-role': 'table', 'data-mode': 'reflow', 'style': 'display:table;'});
 
     //Report headers
-    result.Headers.map(function (header) {
-        let cellHtml = '<th class="detailTableHeaderCell" data-priority="' + 'persist' + '">';
+    const thead = document.createElement('thead');
+    result.Headers.forEach((header) => {
+        const th = document.createElement('th');
+        th.classList.add('detailTableHeaderCell');
+        th.setAttribute('data-priority', 'persist');
 
         if (header.ShowHeaderLabel) {
+            const heading = header.Name || '\xA0';
             if (header.SortField) {
-                cellHtml += '<button class="lnkColumnSort button-link" is="emby-button" data-sortfield="' + header.SortField + '" style="text-decoration:underline;">';
-            }
-
-            cellHtml += (header.Name || '&nbsp;');
-            if (header.SortField) {
-                cellHtml += '</button>';
+                const button = document.createElement('button');
+                button.classList.add('lnkColumnSort', 'button-link');
+                setAttributes(button, {'is': 'emby-button', 'data-sortfield': header.SortField, 'style': 'text-decoration: underline;'});
+                button.textContent = heading;
+                th.appendChild(button);
                 if (header.SortField === query.SortBy) {
-                    if (query.SortOrder === 'Descending') {
-                        cellHtml += '<span style="font-weight:bold;margin-left:5px;vertical-align:top;">&darr;</span>';
-                    } else {
-                        cellHtml += '<span style="font-weight:bold;margin-left:5px;vertical-align:top;">&uarr;</span>';
-                    }
+                    const span = document.createElement('span');
+                    span.style = 'font-weight: bold; margin-left: 5px; vertical-align: top;';
+                    span.textContent = query.SortOrder === 'Descending' ? '\u2193' : '\u2191';
+                    th.appendChild(span);
                 }
+            } else {
+                th.textContent = heading;
             }
         }
-        cellHtml += '</th>';
-        return html += cellHtml;
+        thead.appendChild(th);
     });
+    table.appendChild(thead);
 
-    html += '</thead>';
     //Report body
-    html += '<tbody>';
-    if (result.IsGrouped === false) {
-        result.Rows.map( (row) => {
-            return html += getRow(result.Headers, row);
-        });
+    const tbody = document.createElement('tbody');
+    if (!result.IsGrouped) {
+        result.Rows.forEach((row) => tbody.appendChild(getRow(result.Headers, row)));
     } else {
         let row_count = 0;
         let current_state = 'table-row';
-        let current_pointer = '&#x25BC;';
-        if (initial_state == true) {
+        let current_pointer = '\u25BC';
+        if (initial_state) {
             current_state = 'none';
-            current_pointer = '&#x25B6;';
+            current_pointer = '\u25B6';
         }
-        result.Groups.map(function (group) {
-            html += '<tr style="background-color: rgb(51, 51, 51); color: rgba(255,255,255,.87);">';
-            html += '<th class="detailTableHeaderCell" scope="rowgroup" colspan="' + result.Headers.length + '">';
-            html += '<a class="lnkShowHideRows" data-group_id="' + row_count + '" data-group_state="' + current_state + '" style="cursor: pointer;">' + current_pointer + '</a> ';
-            html += (group.Name || '&nbsp;') + ' : ' + group.Rows.length;
-            html += '</th>';
-            html += '</tr>';
-            group.Rows.map(function (row) {
-                return html += getRow(result.Headers, row, row_count, current_state);
-            });
-            html += '<tr>';
-            html += '<th class="detailTableHeaderCell row_id_' + row_count + '" scope="rowgroup" colspan="' + result.Headers.length + '" style="display:' + current_state + ';">&nbsp;</th>';
-            html += '</tr>';
+        result.Groups.forEach((group) => {
+            const grpHeadRow = document.createElement('tr');
+            grpHeadRow.style = 'background-color: rgb(51, 51, 51); color: rgba(255,255,255,.87);';
+            const grpHeading = document.createElement('th');
+            grpHeading.classList.add('detailTableHeaderCell');
+            setAttributes(grpHeading, {'scope': 'rowgroup', 'colspan': result.Headers.length});
+            const a = document.createElement('a');
+            a.classList.add('lnkShowHideRows');
+            setAttributes(a, {'data-group_id': row_count, 'data-group_state': current_state, 'style': 'cursor: pointer;'});
+            a.textContent = current_pointer;
+            grpHeading.appendChild(a);
+            grpHeading.appendChild(document.createElement('span')).textContent = ` ${group.Name || '\xA0'} : ${group.Rows.length}`;
+            grpHeadRow.appendChild(grpHeading);
+            tbody.appendChild(grpHeadRow);
+
+            group.Rows.forEach((row) => tbody.appendChild(getRow(result.Headers, row, row_count, current_state)));
+
+            const grpFootRow = document.createElement('tr');
+            const grpFooter = document.createElement('th');
+            grpFooter.classList.add('detailTableHeaderCell', `row_id_${row_count}`);
+            setAttributes(grpFooter, {'scope': 'rowgroup', 'colspan': result.Headers.length, 'style': `display:${current_state};`});
+            grpFooter.textContent = '\xA0';
+            grpFootRow.appendChild(grpFooter);
+            tbody.appendChild(grpFootRow);
+
             row_count++;
-            return html;
         });
     }
+    table.appendChild(tbody);
 
-    html += '</tbody>';
-    html += '</table>';
-    return html;
+    return table;
 }
 
 function getRow(rHeaders, rRow, row_count, current_state) {
-    let html = '';
-    html += '<tr class="detailTableBodyRow detailTableBodyRow-shaded row_id_' + row_count + '" style="display:' + current_state + ';">';
+    const tr = document.createElement('tr');
+    tr.classList.add('detailTableBodyRow', 'detailTableBodyRow-shaded', `row_id_${row_count}`);
+    tr.style = `display:${current_state};`;
 
-    for (let j = 0; j < rHeaders.length; j++) {
-        const rHeader = rHeaders[j];
-        const rItem = rRow.Columns[j];
-        html += getItem(rHeader, rRow, rItem);
-    }
-    html += '</tr>';
-    return html;
+    rRow.Columns.forEach((rItem, j) => tr.appendChild(getItem(rHeaders[j], rRow, rItem)));
+    
+    return tr;
 }
 
 function getItem(rHeader, rRow, rItem) {
     const td = document.createElement('td');
     td.classList.add('detailTableBodyCell');
-    const id = rItem.Id ? rItem.Id : rRow.Id;
+    const id = rItem.Id || rRow.Id;
     const serverId = rRow.ServerId || rItem.ServerId || ApiClient.serverId();
 
     switch (rHeader.ItemViewType) {
@@ -106,10 +115,10 @@ function getItem(rHeader, rRow, rItem) {
             td.appendChild(createLinkElement(Emby.Page.getRouteUrl({ Id: id, ServerId: serverId }), true, rItem.Name));
             break;
         case 'Edit':
-            td.appendChild(createLinkElement('edititemmetadata.html?id=' + rRow.Id, false, rItem.Name));
+            td.appendChild(createLinkElement(`edititemmetadata.html?id=${rRow.Id}`, false, rItem.Name));
             break;
         case 'List':
-            td.appendChild(createLinkElement('itemlist.html?serverId=' + rItem.ServerId + '&id=' + rRow.Id, false, rItem.Name));
+            td.appendChild(createLinkElement(`itemlist.html?serverId=${rItem.ServerId}&id=${rRow.Id}`, false, rItem.Name));
             break;
         case 'ItemByNameDetails':
             td.appendChild(createLinkElement(Emby.Page.getRouteUrl({ Id: id, ServerId: serverId }), false, rItem.Name));
@@ -141,20 +150,20 @@ function getItem(rHeader, rRow, rItem) {
             break;
         case 'TagsPrimaryImage':
             if (!rRow.HasImageTagsPrimary) {
-                td.appendChild(createLinkIconElement('edititemmetadata.html?id=' + rRow.Id, 'photo', 'Missing primary image.', 'color:red;'));
+                td.appendChild(createLinkIconElement(`edititemmetadata.html?id=${rRow.Id}`, 'photo', 'Missing primary image.', 'color:red;'));
             }
             break;
         case 'TagsBackdropImage':
             if (!rRow.HasImageTagsBackdrop) {
                 if (rRow.RowType !== 'Episode' && rRow.RowType !== 'Season' && rRow.MediaType !== 'Audio' && rRow.RowType !== 'TvChannel' && rRow.RowType !== 'MusicAlbum') {
-                    td.appendChild(createLinkIconElement('edititemmetadata.html?id=' + rRow.Id, 'photo', 'Missing backdrop image.', 'color:orange;'));
+                    td.appendChild(createLinkIconElement(`edititemmetadata.html?id=${rRow.Id}`, 'photo', 'Missing backdrop image.', 'color:orange;'));
                 }
             }
             break;
         case 'TagsLogoImage':
             if (!rRow.HasImageTagsLogo) {
                 if (rRow.RowType === 'Movie' || rRow.RowType === 'Trailer' || rRow.RowType === 'Series' || rRow.RowType === 'MusicArtist' || rRow.RowType === 'BoxSet') {
-                    td.appendChild(createLinkIconElement('edititemmetadata.html?id=' + rRow.Id, 'photo', 'Missing logo image.'));
+                    td.appendChild(createLinkIconElement(`edititemmetadata.html?id=${rRow.Id}`, 'photo', 'Missing logo image.'));
                 }
             }
             break;
@@ -200,7 +209,7 @@ function getItem(rHeader, rRow, rItem) {
         default:
             td.textContent = rItem.Name;
     }
-    return td.outerHTML;
+    return td;
 }
 
 function createLinkElement(href, isLink, content) {
@@ -294,7 +303,6 @@ function getQueryPagingHtml(options) {
 
 function renderItems(page, result) {
     window.scrollTo(0, 0);
-    let html = '';
 
     if (query.ReportView === 'ReportData') {
         page.querySelector('#selectIncludeItemTypesBox').classList.remove('hide');
@@ -338,10 +346,8 @@ function renderItems(page, result) {
         }
 
         const initial_state = page.querySelector('#chkStartCollapsed').checked;
-        html += getTable(result, initial_state);
-
         const reporContainer = page.querySelector('.reporContainer');
-        reporContainer.innerHTML = html;
+        reporContainer.replaceChildren(getTable(result, initial_state));
         reporContainer.dispatchEvent(new Event('create'));
 
         for (const elem of page.querySelectorAll('.lnkShowHideRows')) {
