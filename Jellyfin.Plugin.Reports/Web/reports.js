@@ -97,7 +97,7 @@ function getTable(page, result, initial_state) {
                     for (const elems of page.getElementsByClassName(row_id_index)) {
                         elems.style.display = 'table-row';
                     }
-                    this.innerHTML = '\u25BC';
+                    this.textContent = '\u25BC';
                 }
             });
             grpHeading.appendChild(a);
@@ -144,6 +144,7 @@ function getItem(rHeader, rRow, rItem) {
             td.textContent = rItem.Name;
             break;
         case 'Detail':
+        case 'ItemByNameDetails':
             td.appendChild(createLinkElement(Emby.Page.getRouteUrl({ Id: id, ServerId: serverId }), true, rItem.Name));
             break;
         case 'Edit':
@@ -152,9 +153,6 @@ function getItem(rHeader, rRow, rItem) {
         case 'List':
             td.appendChild(createLinkElement(`itemlist.html?serverId=${rItem.ServerId}&id=${rRow.Id}`, false, rItem.Name));
             break;
-        case 'ItemByNameDetails':
-            td.appendChild(createLinkElement(Emby.Page.getRouteUrl({ Id: id, ServerId: serverId }), false, rItem.Name));
-            break
         case 'EmbeddedImage':
             if (rRow.HasEmbeddedImage) {
                 td.appendChild(createIconElement('check'));
@@ -207,8 +205,11 @@ function getItem(rHeader, rRow, rItem) {
 
                 });
                 if (userImage) {
-                    const img = createElement('img');
+                    const img = document.createElement('img');
                     img.src = userImage;
+                    img.addEventListener('error', function() {
+                        this.replaceWith(createIconElement('person', 'No Profile picture.'));
+                    })
                     td.appendChild(img);
                 }
             }
@@ -308,18 +309,15 @@ function loadGroupByFilters(page) {
 }
 
 function getQueryPagingHtml(page, totalRecordCount) {
-    const startIndex = query.StartIndex;
-    const limit = query.Limit;
-    const recordsEnd = Math.min(startIndex + limit, totalRecordCount);
-    const showControls = limit < totalRecordCount;
+    const recordsEnd = Math.min(query.StartIndex + query.Limit, totalRecordCount);
 
     const pagingDiv = document.createElement('div');
     if (query.Limit == -1) {
         pagingDiv.textContent = `Total : ${result.TotalRecordCount}`;
-    } else if (showControls) {
+    } else if (query.Limit < totalRecordCount) {
         const pagingTxt = pagingDiv.appendChild(document.createElement('span'));
         pagingTxt.style = 'vertical-align:middle;';
-        pagingTxt.textContent = `${totalRecordCount ? startIndex + 1 : 0}-${recordsEnd} of ${totalRecordCount}`;
+        pagingTxt.textContent = `${totalRecordCount ? query.StartIndex + 1 : 0}-${recordsEnd} of ${totalRecordCount}`;
         const nextPrevButtons = pagingDiv.appendChild(document.createElement('div'));
         nextPrevButtons.style = 'display:inline-block;';
 
@@ -329,7 +327,7 @@ function getQueryPagingHtml(page, totalRecordCount) {
             reloadItems(page);
         });
         prevButton.classList.add('paper-icon-button-light');
-        if (startIndex) prevButton.classList.add('disabled');
+        if (!query.StartIndex) prevButton.disabled = true;
         prevButton.appendChild(createIconElement('arrow_back'));
 
         const nextButton = nextPrevButtons.appendChild(document.createElement('button'));
@@ -338,7 +336,7 @@ function getQueryPagingHtml(page, totalRecordCount) {
             reloadItems(page);
         });
         nextButton.classList.add('paper-icon-button-light');
-        if (startIndex + limit >= totalRecordCount) nextButton.classList.add('disabled');
+        if (recordsEnd == totalRecordCount) nextButton.disabled = true;
         nextButton.appendChild(createIconElement('arrow_forward'));
     }
 
@@ -358,7 +356,9 @@ function renderItems(page, result) {
     }
 
     if (query.ReportView === 'ReportData' || query.ReportView === 'ReportActivities') {
-        page.querySelector('div.paging').replaceChildren(getQueryPagingHtml(page, result.TotalRecordCount));
+        for (const paging of page.querySelectorAll('div.paging')) {
+            paging.replaceChildren(getQueryPagingHtml(page, result.TotalRecordCount));
+        }
 
         const initial_state = page.querySelector('#chkStartCollapsed').checked;
         const reporContainer = page.querySelector('.reporContainer');
