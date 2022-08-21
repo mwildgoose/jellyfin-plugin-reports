@@ -470,11 +470,11 @@ function reloadFiltersIfNeeded(page) {
     if (!filtersLoaded) {
         filtersLoaded = true;
 
-        QueryReportFilters.loadFilters(page, Dashboard.getCurrentUserId(), query, function () {
+        loadFilters(page, Dashboard.getCurrentUserId(), query, function () {
             reloadItems(page);
         });
 
-        QueryReportColumns.loadColumns(page, Dashboard.getCurrentUserId(), query, function () {
+        loadColumns(page, Dashboard.getCurrentUserId(), query, function () {
             reloadItems(page);
         });
     }
@@ -674,27 +674,6 @@ function loadColumns(context, userId, itemQuery, reloadItemsFn) {
         onColumnsLoaded(context, itemQuery, reloadItemsFn);
     });
 }
-
-function onPageShow(page, query) {
-    query.Genres = null;
-    query.Years = null;
-    query.OfficialRatings = null;
-    query.Tags = null;
-}
-
-function onPageReportColumnsShow(page, query) {
-    query.ReportColumns = null;
-}
-
-window.QueryReportFilters = {
-    loadFilters: loadFilters,
-    onPageShow: onPageShow
-};
-
-window.QueryReportColumns = {
-    loadColumns: loadColumns,
-    onPageShow: onPageReportColumnsShow
-};
 
 export default function (view) {
     view.querySelector('#selectIncludeItemTypes').addEventListener('change', function () {
@@ -1028,9 +1007,11 @@ export default function (view) {
         query.UserId = Dashboard.getCurrentUserId();
         const page = this;
         query.SortOrder = 'Ascending';
-
-        QueryReportFilters.onPageShow(page, query);
-        QueryReportColumns.onPageShow(page, query);
+        query.Genres = null;
+        query.Years = null;
+        query.OfficialRatings = null;
+        query.Tags = null;
+        query.ReportColumns = null;
         const selectIncludeItemTypes = page.querySelector('#selectIncludeItemTypes');
         selectIncludeItemTypes.value = query.IncludeItemTypes;
         selectIncludeItemTypes.dispatchEvent(new Event('change'));
