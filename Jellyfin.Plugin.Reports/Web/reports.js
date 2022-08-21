@@ -10,7 +10,7 @@ const query = {
     DisplayType: 'Screen'
 };
 
-function getTable(result, initial_state) {
+function getTable(page, result, initial_state) {
     const setAttributes = (el, attr) => Object.entries(attr).forEach(([k, v]) => el.setAttribute(k, v));
     //Report table
     const table = document.createElement('table');
@@ -28,9 +28,26 @@ function getTable(result, initial_state) {
             const heading = header.Name || '\xA0';
             if (header.SortField) {
                 const button = document.createElement('button');
-                button.classList.add('lnkColumnSort', 'button-link', 'emby-button');
+                button.classList.add('button-link', 'emby-button');
                 setAttributes(button, {'data-sortfield': header.SortField, 'style': 'text-decoration: underline;'});
                 button.textContent = heading;
+                button.addEventListener('click', function () {
+                    const order = this.getAttribute('data-sortfield');
+                    if (query.SortBy === order) {
+                        if (query.SortOrder === 'Descending') {
+                            query.SortOrder = 'Ascending';
+                            query.SortBy = defaultSortBy;
+                        } else {
+                            query.SortOrder = 'Descending';
+                            query.SortBy = order;
+                        }
+                    } else {
+                        query.SortOrder = 'Ascending';
+                        query.SortBy = order;
+                    }
+                    query.StartIndex = 0;
+                    reloadItems(page);
+                });
                 th.appendChild(button);
                 if (header.SortField === query.SortBy) {
                     const span = document.createElement('span');
@@ -65,9 +82,24 @@ function getTable(result, initial_state) {
             grpHeading.classList.add('detailTableHeaderCell');
             setAttributes(grpHeading, {'scope': 'rowgroup', 'colspan': result.Headers.length});
             const a = document.createElement('a');
-            a.classList.add('lnkShowHideRows');
             setAttributes(a, {'data-group_id': row_count, 'data-group_state': current_state, 'style': 'cursor: pointer;'});
             a.textContent = current_pointer;
+            a.addEventListener('click', function () {
+                const row_id_index = `row_id_${this.getAttribute('data-group_id')}`;
+                if (this.getAttribute('data-group_state') == 'table-row') {
+                    this.setAttribute('data-group_state', 'none');
+                    for (const elems of page.getElementsByClassName(row_id_index)) {
+                        elems.style.display = 'none';
+                    }
+                    this.textContent = '\u25B6';
+                } else {
+                    this.setAttribute('data-group_state', 'table-row');
+                    for (const elems of page.getElementsByClassName(row_id_index)) {
+                        elems.style.display = 'table-row';
+                    }
+                    this.innerHTML = '\u25BC';
+                }
+            });
             grpHeading.appendChild(a);
             grpHeading.appendChild(document.createElement('span')).textContent = ` ${group.Name || '\xA0'} : ${group.Rows.length}`;
             grpHeadRow.appendChild(grpHeading);
@@ -330,52 +362,7 @@ function renderItems(page, result) {
 
         const initial_state = page.querySelector('#chkStartCollapsed').checked;
         const reporContainer = page.querySelector('.reporContainer');
-        reporContainer.replaceChildren(getTable(result, initial_state));
-
-        for (const elem of page.querySelectorAll('.lnkShowHideRows')) {
-            elem.addEventListener('click', function () {
-                const row_id = this.getAttribute('data-group_id');
-                const row_id_index = 'row_id_' + row_id;
-                const row_group_state = this.getAttribute('data-group_state');
-                //alert(this.getAttribute("data-group_state"));
-                if (row_group_state == 'table-row') {
-                    this.setAttribute('data-group_state', 'none');
-                    for (const elems of page.querySelectorAll('.' + row_id_index)) {
-                        elems.style.display = 'none';
-                    }
-                    this.innerHTML = '&#x25B6;';
-                } else {
-                    this.setAttribute('data-group_state', 'table-row');
-                    for (const elems of page.querySelectorAll('.' + row_id_index)) {
-                        elems.style.display = 'table-row';
-                    }
-                    this.innerHTML = '&#x25BC;';
-                }
-            });
-        }
-
-        for (const elem of page.querySelectorAll('.lnkColumnSort')) {
-            elem.addEventListener('click', function () {
-                const order = this.getAttribute('data-sortfield');
-
-                if (query.SortBy === order) {
-                    if (query.SortOrder === 'Descending') {
-                        query.SortOrder = 'Ascending';
-                        query.SortBy = defaultSortBy;
-                    } else {
-                        query.SortOrder = 'Descending';
-                        query.SortBy = order;
-                    }
-                } else {
-                    query.SortOrder = 'Ascending';
-                    query.SortBy = order;
-                }
-
-                query.StartIndex = 0;
-
-                reloadItems(page);
-            });
-        }
+        reporContainer.replaceChildren(getTable(page, result, initial_state));
     }
 
     page.querySelector('#GroupStatus').classList.add('hide');
