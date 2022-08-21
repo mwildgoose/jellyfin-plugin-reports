@@ -289,16 +289,13 @@ function loadGroupByFilters(page) {
         let selected = 'None';
 
         const selectReportGroup = page.querySelector('#selectReportGroup');
-        for (const elem of selectReportGroup.querySelectorAll('option')) {
-            const parent = elem.parentNode;
-            parent.removeChild(elem);
-        }
-        selectReportGroup.insertAdjacentHTML('beforeend', '<option value="None">None</option>');
+        selectReportGroup.replaceChildren('<option value="None">None</option>');
         result.map(function (header) {
             if ((header.DisplayType === 'Screen' || header.DisplayType === 'ScreenExport') && header.CanGroup) {
                 if (header.FieldName.length > 0) {
-                    const option = '<option value="' + header.FieldName + '">' + header.Name + '</option>';
-                    selectReportGroup.insertAdjacentHTML('beforeend', option);
+                    const option = selectReportGroup.appendChild(document.createElement('option'));
+                    option.value = header.FieldName;
+                    option.textContent = header.Name;
                     if (query.GroupBy === header.FieldName)
                         selected = header.FieldName;
                 }
@@ -492,18 +489,12 @@ function renderOptions(context, selector, cssClass, items) {
         elem.classList.add('hide');
     }
 
-    let html = '';
-
     //  style="margin: -.2em -.8em;"
-    html += '<div data-role="controlgroup">';
+    const div = document.createElement('div');
+    div.setAttribute('data-role', 'controlgroup');
 
-    let index = 0;
-    const idPrefix = 'chk' + selector.substring(1);
-
-    html += items.map(function (filter) {
-        let itemHtml = '';
-
-        const id = idPrefix + index;
+    items.forEach((filter, index) => {
+        const id = `chk${selector.substring(1)}${index}`;
         let label = filter;
         let value = filter;
         let checked = false;
@@ -513,21 +504,21 @@ function renderOptions(context, selector, cssClass, items) {
             checked = filter.Visible;
         }
 
-        itemHtml += '<input id="' + id + '" type="checkbox" data-filter="' + value + '" class="' + cssClass + '"';
+        const inputEl = div.appendChild(document.createElement('input'));
+        inputEl.setAttribute('id', id);
+        inputEl.setAttribute('type', 'checkbox');
+        inputEl.setAttribute('data-filter', value);
+        inputEl.setAttribute('class', cssClass);
         if (checked)
-            itemHtml += ' checked="checked" ';
-        itemHtml += '/> ';
-        itemHtml += '<label for="' + id + '">' + label + '</label>';
-        itemHtml += '<br/>';
+            inputEl.setAttribute('checked', 'checked');
 
-        index++;
+        const labelEl = div.appendChild(document.createElement('label'));
+        labelEl.for = id;
+        labelEl.textContent = label;
+        div.appendChild(document.createElement('br'));
+    });
 
-        return itemHtml;
-    }).join('');
-
-    html += '</div>';
-
-    elem.querySelector('.filterOptions').innerHTML = html;
+    elem.querySelector('.filterOptions').replaceChildren(div);
 }
 
 function renderFilters(context, result) {
