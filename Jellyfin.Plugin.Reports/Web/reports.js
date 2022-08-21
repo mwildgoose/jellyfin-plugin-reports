@@ -28,8 +28,8 @@ function getTable(result, initial_state) {
             const heading = header.Name || '\xA0';
             if (header.SortField) {
                 const button = document.createElement('button');
-                button.classList.add('lnkColumnSort', 'button-link');
-                setAttributes(button, {'is': 'emby-button', 'data-sortfield': header.SortField, 'style': 'text-decoration: underline;'});
+                button.classList.add('lnkColumnSort', 'button-link', 'emby-button');
+                setAttributes(button, {'data-sortfield': header.SortField, 'style': 'text-decoration: underline;'});
                 button.textContent = heading;
                 th.appendChild(button);
                 if (header.SortField === query.SortBy) {
@@ -212,10 +212,9 @@ function getItem(rHeader, rRow, rItem) {
     return td;
 }
 
-function createLinkElement(href, isLink, content) {
+function createLinkElement(href, isEmbyLink, content) {
     const a = document.createElement('a');
-    a.setAttribute('is', isLink ? 'emby-linkbutton' : 'emby-button');
-    a.classList.add('button-link');
+    a.setAttribute('is', isEmbyLink ? 'emby-linkbutton' : 'emby-button');
     a.href = href;
     a.textContent = content;
     return a;
@@ -276,29 +275,42 @@ function loadGroupByFilters(page) {
     });
 }
 
-function getQueryPagingHtml(options) {
-    const startIndex = options.startIndex;
-    const limit = options.limit;
-    const totalRecordCount = options.totalRecordCount;
-    let html = '';
+function getQueryPagingHtml(page, totalRecordCount) {
+    const startIndex = query.StartIndex;
+    const limit = query.Limit;
     const recordsEnd = Math.min(startIndex + limit, totalRecordCount);
     const showControls = limit < totalRecordCount;
 
-    html += '<div class="listPaging">';
-    if (showControls) {
-        html += '<span style="vertical-align:middle;">';
-        const startAtDisplay = totalRecordCount ? startIndex + 1 : 0;
-        html += startAtDisplay + '-' + recordsEnd + ' of ' + totalRecordCount;
-        html += '</span>';
-        html += '<div style="display:inline-block;">';
-        html += '<button is="paper-icon-button-light" class="btnPreviousPage autoSize" ' + (startIndex ? '' : 'disabled') + '><span class="material-icons arrow_back"></span></button>';
-        html += '<button is="paper-icon-button-light" class="btnNextPage autoSize" ' + (startIndex + limit >= totalRecordCount ? 'disabled' : '') + '><span class="material-icons arrow_forward"></span></button>';
-        html += '</div>';
+    const pagingDiv = document.createElement('div');
+    if (query.Limit == -1) {
+        pagingDiv.textContent = `Total : ${result.TotalRecordCount}`;
+    } else if (showControls) {
+        const pagingTxt = pagingDiv.appendChild(document.createElement('span'));
+        pagingTxt.style = 'vertical-align:middle;';
+        pagingTxt.textContent = `${totalRecordCount ? startIndex + 1 : 0}-${recordsEnd} of ${totalRecordCount}`;
+        const nextPrevButtons = pagingDiv.appendChild(document.createElement('div'));
+        nextPrevButtons.style = 'display:inline-block;';
+
+        const prevButton = nextPrevButtons.appendChild(document.createElement('button'));
+        prevButton.addEventListener('click', () => {
+            query.StartIndex -= query.Limit;
+            reloadItems(page);
+        });
+        prevButton.classList.add('paper-icon-button-light');
+        if (startIndex) prevButton.classList.add('disabled');
+        prevButton.appendChild(createIconElement('arrow_back'));
+
+        const nextButton = nextPrevButtons.appendChild(document.createElement('button'));
+        nextButton.addEventListener('click', () => {
+            query.StartIndex += query.Limit;
+            reloadItems(page);
+        });
+        nextButton.classList.add('paper-icon-button-light');
+        if (startIndex + limit >= totalRecordCount) nextButton.classList.add('disabled');
+        nextButton.appendChild(createIconElement('arrow_forward'));
     }
 
-    html += '</div>';
-
-    return html;
+    return pagingDiv;
 }
 
 function renderItems(page, result) {
@@ -313,42 +325,12 @@ function renderItems(page, result) {
         page.querySelector('#tabFilter').classList.add('hide');
     }
 
-    let pagingHtml = 'Total : ' + result.TotalRecordCount;
-    if (query.Limit != -1) {
-        pagingHtml = getQueryPagingHtml({
-            startIndex: query.StartIndex,
-            limit: query.Limit,
-            totalRecordCount: result.TotalRecordCount,
-            updatePageSizeSetting: false,
-            viewButton: true,
-            showLimit: false
-        });
-    }
-
     if (query.ReportView === 'ReportData' || query.ReportView === 'ReportActivities') {
-        for (const paging of page.querySelectorAll('.paging')) {
-            paging.innerHTML = pagingHtml;
-            paging.dispatchEvent(new Event('create'));
-        }
-
-        for (const btnNextPage of page.querySelectorAll('.btnNextPage')) {
-            btnNextPage.addEventListener('click', function () {
-                query.StartIndex += query.Limit;
-                reloadItems(page);
-            });
-        }
-
-        for (const btnPreviousPage of page.querySelectorAll('.btnPreviousPage')) {
-            btnPreviousPage.addEventListener('click', function () {
-                query.StartIndex -= query.Limit;
-                reloadItems(page);
-            });
-        }
+        page.querySelector('div.paging').replaceChildren(getQueryPagingHtml(page, result.TotalRecordCount));
 
         const initial_state = page.querySelector('#chkStartCollapsed').checked;
         const reporContainer = page.querySelector('.reporContainer');
         reporContainer.replaceChildren(getTable(result, initial_state));
-        reporContainer.dispatchEvent(new Event('create'));
 
         for (const elem of page.querySelectorAll('.lnkShowHideRows')) {
             elem.addEventListener('click', function () {
@@ -559,7 +541,6 @@ function renderOptions(context, selector, cssClass, items) {
     html += '</div>';
 
     elem.querySelector('.filterOptions').innerHTML = html;
-    elem.dispatchEvent(new Event('create'));
 }
 
 function renderFilters(context, result) {
@@ -738,8 +719,6 @@ window.QueryReportColumns = {
 };
 
 export default function (view) {
-    view.dispatchEvent(new CustomEvent('create'));
-
     view.querySelector('#selectIncludeItemTypes').addEventListener('change', function () {
         query.StartIndex = 0;
         query.ReportView = view.querySelector('#selectViewType').value;
